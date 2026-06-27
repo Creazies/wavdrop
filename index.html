@@ -774,8 +774,17 @@ function deleteEvent(i){events.splice(i,1);renderCal();}
 // Stockage local simulé (en prod : remplacer par appels API)
 const ADMIN_EMAIL = 'colasadrien01@gmail.com';
 const ADMIN_PASS = 'AdrienColas2001';
+const ADMIN_USER = {"email":"colasadrien01@gmail.com","pass":"AdrienColas2001","name":"Admin","role":"admin"};
 let pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
-let approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"colasadrien01@gmail.com","pass":"AdrienColas2001","name":"Admin","role":"admin"}]');
+// Toujours forcer l'admin dans la liste
+let approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[]');
+if (!approvedUsers.find(u => u.email === ADMIN_EMAIL)) {
+  approvedUsers.unshift(ADMIN_USER);
+  localStorage.setItem('pimup_approved', JSON.stringify(approvedUsers));
+}
+// Forcer la mise à jour du mot de passe admin
+approvedUsers = approvedUsers.map(u => u.email === ADMIN_EMAIL ? {...u, pass: ADMIN_PASS, role: 'admin'} : u);
+localStorage.setItem('pimup_approved', JSON.stringify(approvedUsers));
 
 function showForm(name) {
   ['login','register','forgot'].forEach(f => document.getElementById('form-'+f).style.display = f===name ? '' : 'none');
