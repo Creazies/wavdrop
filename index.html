@@ -392,6 +392,7 @@ function doLogin(){
 
 function initApp(){
   initCal();
+  loadAllData();
   document.getElementById('pod-name').addEventListener('keydown',e=>{if(e.key==='Enter')createPodcast();});
   document.getElementById('contact-name').addEventListener('keydown',e=>{if(e.key==='Enter')createContact();});
 }
@@ -451,14 +452,19 @@ function previewPhoto(input,wrapId,type){
     document.getElementById(wrapId).innerHTML=`<img src="${e.target.result}" class="photo-preview-img">`;
   };r.readAsDataURL(input.files[0]);
 }
-function createPodcast(){
+async function createPodcast(){
   const name=document.getElementById('pod-name').value.trim();
   if(!name){document.getElementById('pod-name').focus();return;}
-  const id='pod-'+Date.now();
-  podcasts[id]={name,emoji:selectedEmoji,photo:selectedPhoto,activePlat:'yt',connected:{yt:false,tt:false,sp:false}};
-  cardCounters[id]={yt:0,tt:0,sp:0};selectedPhoto=null;
+  const pod={name,emoji:selectedEmoji,photo:selectedPhoto,plat_yt:false,plat_tt:false,plat_sp:false};
+  const {data,error} = await supa.from('podcasts').insert([pod]).select();
+  if(data){
+    const p=data[0];
+    podcasts[p.id]={name:p.name,emoji:p.emoji||'🎙️',photo:p.photo||null,activePlat:'yt',connected:{yt:false,tt:false,sp:false}};
+    cardCounters[p.id]={yt:0,tt:0,sp:0};
+  }
+  selectedPhoto=null;
   document.getElementById('modal-pod').classList.remove('open');
-  switchPodcast(id);
+  if(data) switchPodcast(data[0].id);
 }
 function switchPodcast(id){activePodcast=id;renderWorkspace(id);}
 function renderWorkspace(id){
@@ -493,7 +499,7 @@ function showSettings(id){
 function toggleConnect(podId,plat){podcasts[podId].connected[plat]=!podcasts[podId].connected[plat];showSettings(podId);}
 function changePhoto(id,input){if(!input.files[0])return;const r=new FileReader();r.onload=e=>{podcasts[id].photo=e.target.result;showSettings(id);};r.readAsDataURL(input.files[0]);}
 function switchPlat(podId,plat){podcasts[podId].activePlat=plat;document.querySelectorAll('.plat-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.plat-panel').forEach(p=>p.classList.remove('active'));document.querySelector(`.pt-${plat}`).classList.add('active');document.getElementById(`plat-${plat}-${podId}`).classList.add('active');}
-function deletePod(e,id){e.stopPropagation();if(!confirm('Supprimer ce podcast ?'))return;delete podcasts[id];activePodcast=null;const k=Object.keys(podcasts);if(k.length)switchPodcast(k[0]);else document.getElementById('pod-workspace').innerHTML='<div class="empty-box"><div class="big">🎙️</div><h2>Aucun podcast créé</h2><p>Crée ton premier podcast pour commencer.</p><button onclick="openPodModal()">+ Créer mon premier podcast</button></div>';}
+async function deletePod(e,id){e.stopPropagation();if(!confirm('Supprimer ce podcast ?'))return;await supa.from('podcasts').delete().eq('id',id);delete podcasts[id];activePodcast=null;const k=Object.keys(podcasts);if(k.length)switchPodcast(k[0]);else document.getElementById('pod-workspace').innerHTML='<div class="empty-box"><div class="big">🎙️</div><h2>Aucun podcast créé</h2><p>Crée ton premier podcast pour commencer.</p><button onclick="openPodModal()">+ Créer mon premier podcast</button></div>';}
 function addCard(podId,plat){
   const n=cardCounters[podId][plat]++,cid=`${podId}-${plat}-${n}`,cfg=PLAT[plat];
   const list=document.getElementById(`cards-${podId}-${plat}`);
@@ -512,10 +518,12 @@ function startCD(cid,target){if(timers[cid])clearInterval(timers[cid]);const el=
 
 // ── CONTACTS ──────────────────────────────────────────────────────────────────
 function openContactModal(){document.getElementById('modal-contact').classList.add('open');['contact-name','contact-role','contact-email','contact-phone','contact-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('contact-photo-wrap').innerHTML='<div class="photo-placeholder">📷<span>Clique pour ajouter une photo</span></div>';contactPhoto=null;setTimeout(()=>document.getElementById('contact-name').focus(),100);}
-function createContact(){
+async function createContact(){
   const name=document.getElementById('contact-name').value.trim();
   if(!name){document.getElementById('contact-name').focus();return;}
-  contacts.push({id:'c-'+Date.now(),name,role:document.getElementById('contact-role').value.trim(),email:document.getElementById('contact-email').value.trim(),phone:document.getElementById('contact-phone').value.trim(),notes:document.getElementById('contact-notes').value.trim(),photo:contactPhoto});
+  const contact={name,role:document.getElementById('contact-role').value.trim(),email:document.getElementById('contact-email').value.trim(),phone:document.getElementById('contact-phone').value.trim(),notes:document.getElementById('contact-notes').value.trim(),photo:contactPhoto};
+  const {data,error} = await supa.from('contacts').insert([contact]).select();
+  if(data) contacts.push(data[0]);
   contactPhoto=null;document.getElementById('modal-contact').classList.remove('open');renderContacts();
 }
 function renderContacts(){
@@ -527,7 +535,7 @@ function renderContacts(){
     return`<div class="contact-card">${av}<div style="flex:1;min-width:0"><div class="contact-name">${c.name}</div>${c.role?`<div class="contact-role">${c.role}</div>`:''} ${c.email?`<div style="font-size:12px;color:#6c5ce7;margin-top:2px;">✉️ ${c.email}</div>`:''} ${c.phone?`<div style="font-size:12px;color:#888;margin-top:2px;">📞 ${c.phone}</div>`:''} ${c.notes?`<div style="font-size:12px;color:#aaa;margin-top:4px;">${c.notes}</div>`:''}<button class="btn-sm red" onclick="deleteContact(${i})">🗑 Supprimer</button></div></div>`;
   }).join('');
 }
-function deleteContact(i){if(!confirm('Supprimer ?'))return;contacts.splice(i,1);renderContacts();}
+async function deleteContact(i){if(!confirm('Supprimer ?'))return;const c=contacts[i];if(c.id)await supa.from('contacts').delete().eq('id',c.id);contacts.splice(i,1);renderContacts();}
 
 // ── CALENDRIER ────────────────────────────────────────────────────────────────
 function initCal(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();renderCal();}
@@ -558,10 +566,12 @@ function openEventModal(){
   const sel=document.getElementById('event-podcast');sel.innerHTML='<option value="">— Aucun —</option>'+Object.values(podcasts).map(p=>`<option>${p.name}</option>`).join('');
   setTimeout(()=>document.getElementById('event-title').focus(),100);
 }
-function createEvent(){
+async function createEvent(){
   const title=document.getElementById('event-title').value.trim();
   if(!title){document.getElementById('event-title').focus();return;}
-  events.push({id:'ev-'+Date.now(),title,type:document.getElementById('event-type').value,date:document.getElementById('event-date').value,time:document.getElementById('event-time').value,podcast:document.getElementById('event-podcast').value,notes:document.getElementById('event-notes').value.trim()});
+  const event={title,type:document.getElementById('event-type').value,date:document.getElementById('event-date').value,time:document.getElementById('event-time').value,podcast:document.getElementById('event-podcast').value,notes:document.getElementById('event-notes').value.trim()};
+  const {data,error} = await supa.from('events').insert([event]).select();
+  if(data) events.push(data[0]);
   document.getElementById('modal-event').classList.remove('open');renderCal();
 }
 function renderEventsList(){
@@ -575,7 +585,34 @@ function renderEventsList(){
     return`<div class="event-item"><div class="event-date-box"><div class="eday">${parts[2]||'?'}</div><div class="emon">${mo[parseInt(parts[1])-1]||'?'}</div></div><div class="event-info"><div class="event-title">${ev.title}</div><div class="event-meta">${ev.time||''}${ev.podcast?' · '+ev.podcast:''}</div><span class="event-type ${ev.type}">${tl[ev.type]}</span>${ev.notes?`<div style="font-size:11px;color:#aaa;margin-top:4px;">${ev.notes}</div>`:''}</div><span class="event-del" onclick="deleteEvent(${i})">✕</span></div>`;
   }).join('');
 }
-function deleteEvent(i){events.splice(i,1);renderCal();}
+async function deleteEvent(i){const e=events[i];if(e.id)await supa.from('events').delete().eq('id',e.id);events.splice(i,1);renderCal();}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL = 'https://opscljcnuhjisjuldocf.supabase.co';
+const SUPA_KEY = 'sb_publishable_wD72hpMElvnP0Ajer7658w_o-50dNPR';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── LOAD ALL DATA ON START ────────────────────────────────────────────────────
+async function loadAllData() {
+  // Load contacts
+  const {data: ctData} = await supa.from('contacts').select('*').order('created_at');
+  if(ctData) { contacts.length=0; ctData.forEach(c=>contacts.push(c)); renderContacts(); }
+  // Load events
+  const {data: evData} = await supa.from('events').select('*').order('created_at');
+  if(evData) { events.length=0; evData.forEach(e=>events.push(e)); renderCal(); }
+  // Load podcasts
+  const {data: podData} = await supa.from('podcasts').select('*').order('created_at');
+  if(podData) {
+    podData.forEach(p => {
+      podcasts[p.id] = {name:p.name, emoji:p.emoji||'🎙️', photo:p.photo||null, activePlat:'yt', connected:{yt:p.plat_yt||false, tt:p.plat_tt||false, sp:p.plat_sp||false}};
+      cardCounters[p.id] = {yt:0,tt:0,sp:0};
+    });
+    const keys = Object.keys(podcasts);
+    if(keys.length) switchPodcast(keys[0]);
+  }
+}
 </script>
 </body>
 </html>
