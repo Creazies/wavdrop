@@ -280,6 +280,7 @@ body{font-family:'Inter',-apple-system,sans-serif;min-height:100vh}
   <button class="bn-btn" id="bn-c" onclick="showPage('contacts');bnActive('c')"><span class="bni">👥</span>Contacts</button>
   <button class="bn-btn" id="bn-cal" onclick="showPage('calendar');bnActive('cal')"><span class="bni">📅</span>Calendrier</button>
   <button class="bn-btn" onclick="openPodModal()"><span class="bni">＋</span>Nouveau</button>
+  <button class="bn-btn" onclick="doLogout()"><span class="bni">⎋</span>Quitter</button>
 </nav>
 
 <div class="page active" id="page-podcasts">
@@ -475,18 +476,28 @@ function openPodModal(){
   setTimeout(()=>document.getElementById('pod-name').focus(),100);
 }
 function pickEmoji(el){document.querySelectorAll('.emoji-pick span').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');selectedEmoji=el.textContent;}
-function previewPhoto(input,wrapId,type){
+async function previewPhoto(input,wrapId,type){
   if(!input.files[0])return;
-  const r=new FileReader();r.onload=e=>{
-    if(type==='pod')selectedPhoto=e.target.result;
-    else contactPhoto=e.target.result;
+  const file=input.files[0];
+  const fileName=Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9.]/g,'_');
+  // Afficher aperçu local immédiatement
+  const r=new FileReader();
+  r.onload=e=>{
     document.getElementById(wrapId).innerHTML=`<img src="${e.target.result}" class="photo-preview-img">`;
-  };r.readAsDataURL(input.files[0]);
+  };
+  r.readAsDataURL(file);
+  // Upload vers Supabase Storage
+  const {data,error}=await supa.storage.from('photos').upload(fileName,file,{contentType:file.type,upsert:true});
+  if(!error){
+    const {data:urlData}=supa.storage.from('photos').getPublicUrl(fileName);
+    if(type==='pod') selectedPhoto=urlData.publicUrl;
+    else contactPhoto=urlData.publicUrl;
+  }
 }
 async function createPodcast(){
   const name=document.getElementById('pod-name').value.trim();
   if(!name){document.getElementById('pod-name').focus();return;}
-  const pod={name,emoji:selectedEmoji,photo:selectedPhoto,plat_yt:false,plat_tt:false,plat_sp:false};
+  const pod={name,emoji:selectedEmoji,photo:selectedPhoto||null,plat_yt:false,plat_tt:false,plat_sp:false};
   const {data,error} = await supa.from('podcasts').insert([pod]).select();
   if(data){
     const p=data[0];
@@ -552,7 +563,7 @@ function openContactModal(){document.getElementById('modal-contact').classList.a
 async function createContact(){
   const name=document.getElementById('contact-name').value.trim();
   if(!name){document.getElementById('contact-name').focus();return;}
-  const contact={name,role:document.getElementById('contact-role').value.trim(),email:document.getElementById('contact-email').value.trim(),phone:document.getElementById('contact-phone').value.trim(),notes:document.getElementById('contact-notes').value.trim(),photo:contactPhoto};
+  const contact={name,role:document.getElementById('contact-role').value.trim(),email:document.getElementById('contact-email').value.trim(),phone:document.getElementById('contact-phone').value.trim(),notes:document.getElementById('contact-notes').value.trim(),photo:contactPhoto||null};
   const {data,error} = await supa.from('contacts').insert([contact]).select();
   if(data) contacts.push(data[0]);
   contactPhoto=null;document.getElementById('modal-contact').classList.remove('open');renderContacts();
