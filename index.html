@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#6c5ce7">
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100' height='100' rx='20' fill='%233d2b8e'/%3E%3Ctext x='8' y='72' font-family='Arial Black,Arial' font-size='52' font-weight='900' font-style='italic' fill='%23a29bfe'%3EW%3C/text%3E%3Ctext x='48' y='72' font-family='Arial Black,Arial' font-size='38' font-weight='900' font-style='italic' fill='white'%3ED%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>WAV-DROP</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -211,8 +212,9 @@ body{font-family:'Inter',-apple-system,sans-serif;min-height:100vh}
 .logout-btn:hover{background:rgba(255,255,255,0.25)}
 @media(max-width:768px){
   #login-screen{flex-direction:column}
-  .login-left{width:100%;min-height:260px;padding:32px 24px}
-  .login-logo svg{width:320px;max-width:92%}
+  .login-left{width:100%;min-height:260px;padding:32px 24px;align-items:center;justify-content:center}
+  .login-logo{text-align:center;width:100%}
+  .login-logo svg{width:280px;max-width:80%;display:block;margin:0 auto}
   .login-right{padding:28px 24px}
   .login-box h2{font-size:26px;margin-bottom:22px}
   #app .topbar{display:none}
@@ -240,9 +242,9 @@ body{font-family:'Inter',-apple-system,sans-serif;min-height:100vh}
 <div id="login-screen">
   <div class="login-left">
     <div class="login-logo">
-      <svg viewBox="0 0 460 110" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 480 120" xmlns="http://www.w3.org/2000/svg">
         <text font-family="'Oswald','Arial Narrow',Arial,sans-serif" font-size="82" font-weight="700" font-style="italic" letter-spacing="-1">
-          <tspan x="22" y="84" fill="#a29bfe">WAV</tspan><tspan fill="#ffffff">-DROP</tspan>
+          <tspan x="22" y="95" fill="#a29bfe">WAV</tspan><tspan fill="#ffffff">-DROP</tspan>
         </text>
       </svg>
     </div>
