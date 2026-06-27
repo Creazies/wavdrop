@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WAV-DROP">
+<meta name="theme-color" content="#6c5ce7">
+<link rel="manifest" href="/manifest.json">
+<title>WAV-DROP — Control Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; }
+
+/* ══ AUTH SCREENS ══════════════════════════════════════════════════════════ */
+#auth-screen { display: flex; min-height: 100vh; }
+
+/* Côté gauche — fond violet dégradé */
+.auth-left {
+  width: 45%;
+  background: linear-gradient(160deg, #1a0845 0%, #3d2b8e 40%, #6c5ce7 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px 48px; position: relative; overflow: hidden;
+}
+.auth-left::before {
+  content: ''; position: absolute; width: 400px; height: 400px;
+  background: rgba(162,155,254,0.12); border-radius: 50%;
+  top: -80px; right: -80px;
+}
+.auth-left::after {
+  content: ''; position: absolute; width: 300px; height: 300px;
+  background: rgba(108,92,231,0.15); border-radius: 50%;
+  bottom: -60px; left: -60px;
+}
+.auth-logo-wrap { position: relative; z-index: 1; text-align: center; }
+.auth-logo-wrap svg { width: 420px; max-width: 90%; height: auto; }
+
+/* Côté droit — formulaire */
+.auth-right {
+  flex: 1; background: #f5f2ff;
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px 48px;
+}
+.auth-box { width: 100%; max-width: 380px; }
+.auth-box h2 {
+  font-family: 'Playfair Display', serif; font-style: italic;
+  font-size: 36px; color: #1a0845; margin-bottom: 32px; font-weight: 600;
+}
+.auth-field { margin-bottom: 18px; }
+.auth-field label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: #6c5ce7; text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.auth-field input {
+  width: 100%; padding: 15px 20px; border: 1.5px solid #e0d9ff;
+  border-radius: 12px; background: white; font-size: 14px;
+  font-family: 'Inter', sans-serif; color: #1a0845; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.auth-field input:focus { border-color: #6c5ce7; box-shadow: 0 0 0 4px rgba(108,92,231,0.1); }
+.auth-field input::placeholder { color: #c4b8f0; }
+.auth-btn {
+  width: 100%; padding: 16px; background: #6c5ce7; color: white;
+  border: none; border-radius: 12px; font-size: 15px; font-weight: 600;
+  font-family: 'Inter', sans-serif; cursor: pointer; margin-top: 10px;
+  transition: background 0.2s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+.auth-btn:hover { background: #5a4bd1; }
+.auth-btn:active { transform: scale(0.98); }
+.auth-links { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; align-items: center; }
+.auth-link {
+  font-size: 13px; font-family: 'Inter', sans-serif;
+  color: #6c5ce7; cursor: pointer; font-weight: 500;
+}
+.auth-link:hover { text-decoration: underline; }
+.auth-link.muted { color: #a29bfe; font-size: 12px; font-weight: 400; }
+.auth-msg { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
+.auth-msg.error { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+.auth-msg.success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.auth-msg.info { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+/* PENDING screen */
+#pending-screen {
+  display: none; min-height: 100vh;
+  background: linear-gradient(160deg, #1a0845 0%, #3d2b8e 40%, #6c5ce7 100%);
+  align-items: center; justify-content: center;
+  flex-direction: column; gap: 20px; text-align: center; padding: 40px;
+}
+#pending-screen .pending-icon { font-size: 56px; }
+#pending-screen svg { width: 220px; margin-bottom: 8px; }
+#pending-screen h2 { font-family: 'Playfair Display', serif; font-size: 24px; color: white; }
+#pending-screen p { font-size: 14px; color: rgba(255,255,255,0.7); max-width: 360px; line-height: 1.6; }
+#pending-screen .auth-link { color: #a29bfe; }
+
+/* ADMIN banner */
+.admin-banner { background: #3d2b8e; color: white; padding: 8px 24px; font-size: 12px; display: none; align-items: center; gap: 10px; justify-content: space-between; }
+.admin-banner.show { display: flex; }
+.admin-notif { display: flex; align-items: center; gap: 8px; }
+.admin-notif-dot { width: 8px; height: 8px; border-radius: 50%; background: #fbbf24; flex-shrink: 0; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.admin-actions { display: flex; gap: 8px; }
+.admin-btn { padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+.admin-btn.approve { background: #16a34a; color: white; }
+.admin-btn.reject { background: #e11d48; color: white; }
+
+/* ══ REMEMBER ME ════════════════════════════════════════════════════════════ */
+.remember-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.remember-row input[type=checkbox] { width: 18px; height: 18px; accent-color: #6c5ce7; cursor: pointer; flex-shrink: 0; }
+.remember-row label { font-size: 13px; color: #6c5ce7; cursor: pointer; font-weight: 500; }
+
+/* ══ NAVIGATION BAS — MOBILE APP ════════════════════════════════════════════ */
+.bottom-nav { display: none; }
+
+/* ══ RESPONSIVE MOBILE — FORMAT APPLICATION ═════════════════════════════════ */
+@media (max-width: 768px) {
+  /* AUTH */
+  #auth-screen { flex-direction: column; min-height: 100vh; }
+  .auth-left { width: 100%; min-height: 200px; padding: 32px 24px; justify-content: center; }
+  .auth-logo-wrap svg { width: 200px; }
+  .auth-right { padding: 28px 24px; align-items: flex-start; }
+  .auth-box h2 { font-size: 26px; margin-bottom: 22px; }
+
+  /* APP — cacher topbar, montrer bottom nav */
+  #app-screen .topbar { display: none; }
+  .bottom-nav {
+    display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+    background: #1a0845; border-top: 1px solid rgba(255,255,255,0.1);
+    z-index: 50; padding: 0 0 env(safe-area-inset-bottom);
+  }
+  .bottom-nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 10px 0 8px; background: none; border: none;
+    color: rgba(255,255,255,0.45); cursor: pointer; font-size: 10px;
+    font-family: 'Inter', sans-serif; font-weight: 500; gap: 4px;
+    transition: color 0.15s;
+  }
+  .bottom-nav-btn .bn-icon { font-size: 22px; }
+  .bottom-nav-btn.active { color: #a29bfe; }
+  .bottom-nav-btn.active .bn-icon { filter: drop-shadow(0 0 6px rgba(162,155,254,0.5)); }
+
+  /* APP CONTENT sur mobile */
+  .workspace { flex-direction: column; min-height: calc(100vh - 68px); padding-bottom: 68px; }
+  .sidebar { display: none; }
+  .main-content { padding: 14px; }
+
+  /* Pod list sur mobile : en haut dans le main */
+  .mobile-pod-bar { display: flex; gap: 8px; overflow-x: auto; padding: 12px 14px; background: white; border-bottom: 1px solid #e0e0e0; scrollbar-width: none; }
+  .mobile-pod-bar::-webkit-scrollbar { display: none; }
+  .mobile-pod-chip { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 20px; background: #f5f2ff; border: 1.5px solid #e0d9ff; font-size: 13px; font-weight: 500; color: #3d2b8e; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: all 0.15s; }
+  .mobile-pod-chip.active { background: #6c5ce7; color: white; border-color: #6c5ce7; }
+  .mobile-pod-chip img { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; }
+  .mobile-pod-chip-add { background: none; border: 1.5px dashed #c4b8f0; color: #a29bfe; }
+
+  /* Plat tabs sur mobile */
+  .plat-tabs { gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .plat-tabs::-webkit-scrollbar { display: none; }
+  .plat-tab { padding: 7px 14px; font-size: 12px; flex-shrink: 0; }
+
+  /* Cards sur mobile */
+  .card-head { padding: 12px 14px; gap: 10px; }
+  .cal-grid { grid-template-columns: 1fr; }
+  .contact-grid { grid-template-columns: 1fr; }
+  .field-row { grid-template-columns: 1fr; }
+  .page-inner { padding: 14px; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+
+  /* Panel header sur mobile */
+  .panel-header { position: sticky; top: 0; background: #f0f0f0; z-index: 10; padding: 10px 0; }
+}
+
+
+
+
+.topbar { background: #1a1a2e; color: white; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 52px; }
+.topbar-brand { font-size: 16px; font-weight: 700; }
+.topbar-nav { display: flex; height: 100%; }
+.nav-btn { height: 100%; padding: 0 20px; font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.6); background: none; border: none; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.15s; }
+.nav-btn:hover { color: white; }
+.nav-btn.active { color: white; border-bottom-color: white; }
+.topbar-action { background: white; color: #1a1a2e; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.topbar-action:hover { background: #e8e8e8; }
+.page { display: none; }
+.page.active { display: block; }
+/* WORKSPACE */
+.workspace { display: flex; min-height: calc(100vh - 52px); }
+.sidebar { width: 220px; flex-shrink: 0; background: white; border-right: 1px solid #e0e0e0; padding: 14px; display: flex; flex-direction: column; gap: 6px; }
+.sidebar-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #aaa; padding: 4px 8px; margin-top: 4px; }
+.pod-list-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: background 0.1s; }
+.pod-list-item:hover { background: #f5f5f5; }
+.pod-list-item.active { background: #eff6ff; }
+.pod-list-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e0e0; flex-shrink: 0; }
+.pod-list-emoji { width: 32px; height: 32px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 17px; flex-shrink: 0; }
+.pod-list-name { font-size: 13px; font-weight: 500; color: #1a1a1a; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-list-del { font-size: 12px; color: #ccc; padding: 2px 5px; border-radius: 4px; }
+.pod-list-del:hover { color: #e11d48; background: #fff1f2; }
+.sidebar-add-btn { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 8px; cursor: pointer; border: 1px dashed #d1d5db; background: none; width: 100%; text-align: left; font-size: 13px; color: #888; transition: all 0.1s; margin-top: 4px; }
+.sidebar-add-btn:hover { border-color: #3b82f6; color: #3b82f6; background: #eff6ff; }
+.sidebar-divider { border: none; border-top: 1px solid #f0f0f0; margin: 6px 0; }
+/* POD PROFILE */
+.pod-profile-card { background: #f8f8f8; border: 1px solid #e8e8e8; border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.15s; }
+.pod-profile-card:hover { border-color: #3b82f6; background: #eff6ff; }
+.pod-avatar-large { width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 3px solid #e0e0e0; margin: 0 auto 8px; display: block; }
+.pod-emoji-large { font-size: 42px; display: block; margin: 0 auto 8px; }
+.pod-profile-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.pod-profile-hint { font-size: 11px; color: #aaa; }
+.conn-status h4 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 8px; }
+.conn-item { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f0f0f0; }
+.conn-item:last-child { border-bottom: none; }
+.conn-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.conn-dot.on { background: #16a34a; } .conn-dot.off { background: #d1d5db; }
+.conn-label { font-size: 13px; flex: 1; }
+.conn-state { font-size: 11px; } .conn-state.on { color: #16a34a; } .conn-state.off { color: #aaa; }
+.main-content { flex: 1; padding: 24px; }
+/* PLAT TABS */
+.plat-tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+.plat-tab { padding: 8px 18px; font-size: 13px; font-weight: 600; border-radius: 20px; cursor: pointer; border: 2px solid transparent; transition: all 0.15s; }
+.plat-tab.active { color: white; }
+.plat-tab.pt-yt { border-color: #ff0000; color: #ff0000; } .plat-tab.pt-yt.active { background: #ff0000; }
+.plat-tab.pt-tt { border-color: #333; color: #333; } .plat-tab.pt-tt.active { background: #333; }
+.plat-tab.pt-sp { border-color: #1db954; color: #1db954; } .plat-tab.pt-sp.active { background: #1db954; }
+.plat-panel { display: none; } .plat-panel.active { display: block; }
+.panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.panel-title { font-size: 15px; font-weight: 600; }
+.add-btn { background: #1a1a2e; color: white; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.add-btn:hover { background: #2d2d4e; }
+/* CARDS */
+.card { background: white; border: 1px solid #e0e0e0; border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+.card-head { display: flex; align-items: center; gap: 12px; padding: 13px 16px; cursor: pointer; }
+.card-head:hover { background: #fafafa; }
+.card-icon { font-size: 20px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f5f5f5; flex-shrink: 0; }
+.card-meta { flex: 1; min-width: 0; }
+.card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-sub { font-size: 12px; color: #999; margin-top: 2px; }
+.card-cd { font-size: 11px; color: #3b82f6; font-weight: 500; margin-top: 3px; }
+.badge { font-size: 11px; padding: 4px 10px; border-radius: 20px; font-weight: 600; flex-shrink: 0; }
+.badge-draft { background: #f3f4f6; color: #6b7280; }
+.badge-scheduled { background: #eff6ff; color: #3b82f6; }
+.badge-ready { background: #f0fdf4; color: #16a34a; }
+.chevron { color: #ccc; font-size: 16px; flex-shrink: 0; transition: transform 0.2s; }
+.chevron.open { transform: rotate(180deg); }
+.card-body { display: none; padding: 0 16px 16px; border-top: 1px solid #f0f0f0; }
+.card-body.open { display: block; }
+.field { margin-top: 12px; }
+.field label { display: block; font-size: 11px; font-weight: 700; color: #666; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+.field input, .field textarea, .field select { width: 100%; padding: 9px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; background: #fafafa; color: #1a1a1a; }
+.field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: #3b82f6; background: white; }
+.field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.file-zone { margin-top: 12px; border: 2px dashed #d1d5db; border-radius: 10px; padding: 18px; text-align: center; cursor: pointer; background: #fafafa; transition: all 0.15s; }
+.file-zone:hover { border-color: #3b82f6; background: #eff6ff; }
+.file-zone p { font-size: 13px; color: #888; margin-top: 4px; }
+.file-zone .fz-title { font-size: 13px; font-weight: 500; color: #444; }
+.file-ok { display: none; align-items: center; gap: 8px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 13px; color: #16a34a; }
+.file-ok .fname { font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.format-tip { margin-top: 10px; font-size: 12px; color: #888; background: #f9f9f9; border-radius: 6px; padding: 7px 10px; border-left: 3px solid #e0e0e0; }
+.card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.btn-del { padding: 8px 14px; background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.btn-save { flex: 1; padding: 8px 14px; background: #1a1a2e; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+/* EMPTY */
+.empty-box { text-align: center; padding: 80px 20px; color: #aaa; }
+.empty-box .big { font-size: 52px; margin-bottom: 16px; }
+.empty-box h2 { font-size: 18px; font-weight: 600; color: #555; margin-bottom: 8px; }
+.empty-box p { font-size: 14px; margin-bottom: 20px; }
+.empty-box button { background: #1a1a2e; color: white; border: none; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.empty-plat { text-align: center; padding: 50px 20px; color: #bbb; }
+.empty-plat .big { font-size: 36px; margin-bottom: 10px; }
+.empty-plat p { font-size: 13px; }
+/* SETTINGS */
+.settings-back { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #3b82f6; cursor: pointer; margin-bottom: 20px; background: none; border: none; padding: 0; }
+.settings-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #888; margin-bottom: 10px; }
+.settings-photo-block { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 20px; }
+.settings-avatar { width: 76px; height: 76px; border-radius: 50%; object-fit: cover; border: 3px solid #e0e0e0; cursor: pointer; flex-shrink: 0; }
+.settings-avatar-emoji { width: 76px; height: 76px; border-radius: 50%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 38px; cursor: pointer; flex-shrink: 0; border: 3px dashed #d1d5db; }
+.settings-avatar-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.settings-avatar-info p { font-size: 12px; color: #888; margin-bottom: 10px; }
+.btn-change-photo { background: #f3f4f6; color: #1a1a1a; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.conn-card { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 16px 18px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px; }
+.conn-card-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.conn-card-info { flex: 1; }
+.conn-card-info h3 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.conn-card-info p { font-size: 12px; color: #888; }
+.status-pill { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+.status-pill.off { background: #f3f4f6; color: #9ca3af; }
+.status-pill.on { background: #f0fdf4; color: #16a34a; }
+.btn-connect { padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; margin-left: 8px; }
+.btn-connect.off { background: #1a1a2e; color: white; }
+.btn-connect.on { background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3; }
+/* CONTACTS */
+.page-inner { padding: 24px; max-width: 960px; margin: 0 auto; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.page-header h2 { font-size: 20px; font-weight: 700; }
+.contact-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.contact-card { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 18px; display: flex; gap: 14px; align-items: flex-start; }
+.contact-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid #e0e0e0; }
+.contact-initials { width: 48px; height: 48px; border-radius: 50%; background: #1a1a2e; color: white; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; flex-shrink: 0; }
+.contact-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.contact-role { font-size: 12px; color: #888; margin-bottom: 6px; }
+.btn-sm { padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #e0e0e0; background: white; color: #555; margin-top: 8px; }
+.btn-sm.red { border-color: #fecdd3; color: #e11d48; background: #fff1f2; }
+/* CALENDRIER */
+.cal-grid { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+.cal-month { background: white; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+.cal-header h3 { font-size: 16px; font-weight: 700; }
+.cal-nav { background: none; border: 1px solid #e0e0e0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font-size: 14px; }
+.cal-nav:hover { background: #f5f5f5; }
+.cal-days-header { display: grid; grid-template-columns: repeat(7,1fr); text-align: center; padding: 8px 12px 0; }
+.cal-day-name { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; padding: 6px 0; }
+.cal-days { display: grid; grid-template-columns: repeat(7,1fr); padding: 4px 12px 12px; gap: 2px; }
+.cal-day { min-height: 50px; border-radius: 8px; padding: 4px; cursor: pointer; transition: background 0.1s; }
+.cal-day:hover { background: #f5f5f5; }
+.cal-day.other-month .day-num { color: #ccc; }
+.cal-day.today .day-num { background: #1a1a2e; color: white; border-radius: 50%; }
+.cal-day.has-event { background: #eff6ff; }
+.day-num { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; }
+.day-dot { width: 5px; height: 5px; border-radius: 50%; background: #3b82f6; margin: 2px auto 0; }
+.cal-sidebar { display: flex; flex-direction: column; gap: 14px; }
+.events-list { background: white; border: 1px solid #e0e0e0; border-radius: 12px; padding: 18px; }
+.events-list h4 { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+.event-item { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; align-items: flex-start; }
+.event-item:last-child { border-bottom: none; }
+.event-date-box { background: #1a1a2e; color: white; border-radius: 8px; padding: 6px 10px; text-align: center; flex-shrink: 0; min-width: 44px; }
+.event-date-box .eday { font-size: 18px; font-weight: 700; line-height: 1; }
+.event-date-box .emon { font-size: 10px; text-transform: uppercase; margin-top: 2px; }
+.event-info { flex: 1; }
+.event-title { font-size: 13px; font-weight: 600; }
+.event-meta { font-size: 12px; color: #888; margin-top: 2px; }
+.event-type { font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: 500; display: inline-block; margin-top: 4px; }
+.event-type.interview { background: #fef3c7; color: #d97706; }
+.event-type.record { background: #ede9fe; color: #7c3aed; }
+.event-type.publish { background: #dcfce7; color: #16a34a; }
+.event-del { color: #ccc; font-size: 14px; cursor: pointer; padding: 2px 5px; border-radius: 4px; flex-shrink: 0; }
+.event-del:hover { color: #e11d48; background: #fff1f2; }
+.no-events { text-align: center; color: #bbb; font-size: 13px; padding: 20px 0; }
+/* MODAL */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: center; justify-content: center; }
+.modal-bg.open { display: flex; }
+.modal { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto; }
+.modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn-cancel { flex: 1; padding: 11px; background: #f3f4f6; color: #555; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+.btn-create { flex: 2; padding: 11px; background: #1a1a2e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+.photo-zone { border: 2px dashed #d1d5db; border-radius: 10px; padding: 14px; text-align: center; cursor: pointer; background: #fafafa; transition: all 0.15s; }
+.photo-zone:hover { border-color: #3b82f6; background: #eff6ff; }
+.photo-placeholder { font-size: 24px; color: #aaa; }
+.photo-placeholder span { display: block; font-size: 12px; margin-top: 4px; color: #aaa; }
+.photo-preview-img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 3px solid #e0e0e0; }
+.emoji-pick { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; max-height: 120px; overflow-y: auto; }
+.emoji-pick span { font-size: 21px; cursor: pointer; padding: 4px; border-radius: 6px; border: 2px solid transparent; }
+.emoji-pick span:hover { background: #f0f0f0; }
+.emoji-pick span.sel { border-color: #1a1a2e; background: #f0f0f0; }
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH SCREEN ══════════════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-left">
+    <div class="auth-logo-wrap">
+      <svg viewBox="0 0 460 110" xmlns="http://www.w3.org/2000/svg">
+        <text font-family="'Oswald', 'Arial Narrow', Arial, sans-serif" font-size="82" font-weight="700" font-style="italic" letter-spacing="-1">
+          <tspan x="22" y="84" fill="#a29bfe">WAV</tspan><tspan fill="#ffffff">-DROP</tspan>
+        </text>
+      </svg>
+    </div>
+  </div>
+  <div class="auth-right">
+    <!-- CONNEXION -->
+    <div class="auth-box" id="form-login">
+      <h2>Connexion</h2>
+      <div class="auth-msg" id="login-msg"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="login-email" placeholder="exemple@email.com"></div>
+      <div class="auth-field"><label>Mot de passe</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <div class="remember-row">
+        <input type="checkbox" id="remember-me">
+        <label for="remember-me">Rester connecté</label>
+      </div>
+      <button class="auth-btn" onclick="doLogin()">Se connecter</button>
+      <div class="auth-links">
+        <span class="auth-link" onclick="showForm('register')">Créer un compte</span>
+        <span class="auth-link muted" onclick="showForm('forgot')">Mot de passe oublié ?</span>
+      </div>
+    </div>
+    <!-- INSCRIPTION -->
+    <div class="auth-box" id="form-register" style="display:none">
+      <h2>Créer un compte</h2>
+      <div class="auth-msg" id="register-msg"></div>
+      <div class="auth-field"><label>Nom complet</label><input type="text" id="reg-name" placeholder="Jean Dupont"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="reg-email" placeholder="exemple@email.com"></div>
+      <div class="auth-field"><label>Mot de passe</label><input type="password" id="reg-pass" placeholder="Minimum 6 caractères"></div>
+      <button class="auth-btn" onclick="doRegister()">Créer mon compte</button>
+      <div class="auth-links">
+        <span class="auth-link muted" onclick="showForm('login')">← Retour à la connexion</span>
+      </div>
+    </div>
+    <!-- MOT DE PASSE OUBLIÉ -->
+    <div class="auth-box" id="form-forgot" style="display:none">
+      <h2>Récupérer mon accès</h2>
+      <div class="auth-msg" id="forgot-msg"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="forgot-email" placeholder="exemple@email.com"></div>
+      <button class="auth-btn" onclick="doForgot()">Envoyer le lien</button>
+      <div class="auth-links">
+        <span class="auth-link muted" onclick="showForm('login')">← Retour à la connexion</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ EN ATTENTE D'APPROBATION ══════════════════════════════════════════════ -->
+<div id="pending-screen">
+  <div class="pending-icon">⏳</div>
+  <svg viewBox="0 0 460 110" xmlns="http://www.w3.org/2000/svg">
+    <text font-family="'Oswald', 'Arial Narrow', Arial, sans-serif" font-size="82" font-weight="700" font-style="italic" letter-spacing="-1">
+      <tspan x="22" y="84" fill="#a29bfe">WAV</tspan><tspan fill="#ffffff">-DROP</tspan>
+    </text>
+  </svg>
+  <h2>Demande en cours d'examen</h2>
+  <p>Ton compte a été créé. Un administrateur va valider ton accès sous peu. Tu recevras un email de confirmation.</p>
+  <span class="auth-link" onclick="showAuthScreen()" style="margin-top:8px;">← Retour</span>
+</div>
+
+<!-- ══ BANNIÈRE ADMIN (notifications) ══════════════════════════════════════ -->
+<div class="admin-banner" id="admin-banner"></div>
+
+<!-- ══ APP ══════════════════════════════════════════════════════════════════ -->
+<div id="app-screen" style="display:none">
+
+<div class="topbar">
+  <div class="topbar-brand">
+    <span style="color:#a29bfe;font-weight:800;font-style:italic;letter-spacing:-0.5px;">WAV</span><span style="font-weight:800;font-style:italic;letter-spacing:-0.5px;">-DROP</span>
+  </div>
+  <div class="topbar-nav">
+    <button class="nav-btn active" id="nav-podcasts" onclick="showPage('podcasts')">🎙️ Podcasts</button>
+    <button class="nav-btn" id="nav-contacts" onclick="showPage('contacts')">👥 Contacts</button>
+    <button class="nav-btn" id="nav-calendar" onclick="showPage('calendar')">📅 Calendrier</button>
+  </div>
+  <button class="topbar-action" id="topbar-btn" onclick="mainAction()">+ Nouveau</button>
+</div>
+
+<!-- NAVIGATION BAS — MOBILE UNIQUEMENT -->
+<nav class="bottom-nav" id="bottom-nav">
+  <button class="bottom-nav-btn active" id="bn-podcasts" onclick="showPage('podcasts');updateBottomNav('podcasts')">
+    <span class="bn-icon">🎙️</span>Podcasts
+  </button>
+  <button class="bottom-nav-btn" id="bn-contacts" onclick="showPage('contacts');updateBottomNav('contacts')">
+    <span class="bn-icon">👥</span>Contacts
+  </button>
+  <button class="bottom-nav-btn" id="bn-calendar" onclick="showPage('calendar');updateBottomNav('calendar')">
+    <span class="bn-icon">📅</span>Calendrier
+  </button>
+  <button class="bottom-nav-btn" onclick="openPodModal()">
+    <span class="bn-icon">＋</span>Nouveau
+  </button>
+</nav>
+
+<!-- PAGE PODCASTS -->
+<div class="page active" id="page-podcasts">
+  <!-- Barre podcasts mobile -->
+  <div class="mobile-pod-bar" id="mobile-pod-bar" style="display:none"></div>
+  <div id="pod-workspace">
+    <div class="empty-box"><div class="big">🎙️</div><h2>Aucun podcast créé</h2><p>Crée ton premier podcast pour commencer.</p><button onclick="openPodModal()">+ Créer mon premier podcast</button></div>
+  </div>
+</div>
+
+<!-- PAGE CONTACTS -->
+<div class="page" id="page-contacts">
+  <div class="page-inner">
+    <div class="page-header"><h2>👥 Contacts</h2><button class="add-btn" onclick="openContactModal()">+ Ajouter un contact</button></div>
+    <div class="contact-grid" id="contact-grid">
+      <div class="empty-box" style="grid-column:1/-1"><div class="big">👥</div><h2>Aucun contact</h2><p>Ajoute tes invités, co-animateurs, interviewés...</p><button onclick="openContactModal()">+ Ajouter un contact</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE CALENDRIER -->
+<div class="page" id="page-calendar">
+  <div class="page-inner">
+    <div class="page-header"><h2>📅 Calendrier</h2><button class="add-btn" onclick="openEventModal()">+ Ajouter un événement</button></div>
+    <div class="cal-grid">
+      <div class="cal-month">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="calNav(-1)">←</button>
+          <h3 id="cal-title"></h3>
+          <button class="cal-nav" onclick="calNav(1)">→</button>
+        </div>
+        <div class="cal-days-header">
+          <div class="cal-day-name">Lun</div><div class="cal-day-name">Mar</div><div class="cal-day-name">Mer</div>
+          <div class="cal-day-name">Jeu</div><div class="cal-day-name">Ven</div><div class="cal-day-name">Sam</div><div class="cal-day-name">Dim</div>
+        </div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+      <div class="cal-sidebar">
+        <div class="events-list"><h4>Tous les événements</h4><div id="events-list-content"><div class="no-events">Aucun événement planifié.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL podcast -->
+<div class="modal-bg" id="modal-pod">
+  <div class="modal">
+    <h2>Nouveau podcast</h2>
+    <div class="field"><label>Nom du podcast</label><input type="text" id="pod-name" placeholder="ex: Tech & Café, Le Vrai Actu..."></div>
+    <div class="field"><label>Photo de profil (optionnel)</label>
+      <div class="photo-zone" onclick="document.getElementById('pod-photo').click()"><div id="photo-preview-wrap"><div class="photo-placeholder">📷<span>Clique pour ajouter une photo</span></div></div></div>
+      <input type="file" id="pod-photo" accept="image/*" style="display:none" onchange="previewPhoto(this,'photo-preview-wrap','pod')">
+    </div>
+    <div class="field"><label>Icône (si pas de photo)</label>
+      <div class="emoji-pick" id="emoji-pick">
+        <span onclick="pickEmoji(this)" class="sel">🎙️</span><span onclick="pickEmoji(this)">🎧</span><span onclick="pickEmoji(this)">🎤</span><span onclick="pickEmoji(this)">📻</span><span onclick="pickEmoji(this)">🎵</span><span onclick="pickEmoji(this)">🎶</span><span onclick="pickEmoji(this)">🎸</span><span onclick="pickEmoji(this)">🥁</span><span onclick="pickEmoji(this)">🎹</span><span onclick="pickEmoji(this)">🎺</span><span onclick="pickEmoji(this)">🎻</span><span onclick="pickEmoji(this)">🪗</span><span onclick="pickEmoji(this)">🔊</span><span onclick="pickEmoji(this)">📢</span><span onclick="pickEmoji(this)">📡</span><span onclick="pickEmoji(this)">💡</span><span onclick="pickEmoji(this)">🚀</span><span onclick="pickEmoji(this)">🔥</span><span onclick="pickEmoji(this)">⚡</span><span onclick="pickEmoji(this)">🌍</span><span onclick="pickEmoji(this)">🌊</span><span onclick="pickEmoji(this)">🧠</span><span onclick="pickEmoji(this)">💼</span><span onclick="pickEmoji(this)">💻</span><span onclick="pickEmoji(this)">🤖</span><span onclick="pickEmoji(this)">🎮</span><span onclick="pickEmoji(this)">🏆</span><span onclick="pickEmoji(this)">☕</span><span onclick="pickEmoji(this)">🍷</span><span onclick="pickEmoji(this)">🦁</span><span onclick="pickEmoji(this)">🐉</span><span onclick="pickEmoji(this)">🌙</span><span onclick="pickEmoji(this)">⭐</span><span onclick="pickEmoji(this)">💎</span><span onclick="pickEmoji(this)">🎬</span><span onclick="pickEmoji(this)">📸</span><span onclick="pickEmoji(this)">📚</span><span onclick="pickEmoji(this)">🔬</span><span onclick="pickEmoji(this)">🏔️</span><span onclick="pickEmoji(this)">🏙️</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-pod').classList.remove('open')">Annuler</button>
+      <button class="btn-create" onclick="createPodcast()">Créer le podcast</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL contact -->
+<div class="modal-bg" id="modal-contact">
+  <div class="modal">
+    <h2>Nouveau contact</h2>
+    <div class="field"><label>Nom complet</label><input type="text" id="contact-name" placeholder="Jean Dupont"></div>
+    <div class="field"><label>Rôle / Titre</label><input type="text" id="contact-role" placeholder="Journaliste, Expert IA, Co-animateur..."></div>
+    <div class="field"><label>Email</label><input type="email" id="contact-email" placeholder="jean@exemple.com"></div>
+    <div class="field"><label>Téléphone</label><input type="tel" id="contact-phone" placeholder="+33 6 00 00 00 00"></div>
+    <div class="field"><label>Notes / Réseaux</label><textarea id="contact-notes" placeholder="Twitter: @jean, LinkedIn, sujets..."></textarea></div>
+    <div class="field"><label>Photo (optionnel)</label>
+      <div class="photo-zone" onclick="document.getElementById('contact-photo-input').click()"><div id="contact-photo-wrap"><div class="photo-placeholder">📷<span>Clique pour ajouter une photo</span></div></div></div>
+      <input type="file" id="contact-photo-input" accept="image/*" style="display:none" onchange="previewPhoto(this,'contact-photo-wrap','contact')">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-contact').classList.remove('open')">Annuler</button>
+      <button class="btn-create" onclick="createContact()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL événement -->
+<div class="modal-bg" id="modal-event">
+  <div class="modal">
+    <h2>Nouvel événement</h2>
+    <div class="field"><label>Titre</label><input type="text" id="event-title" placeholder="Interview avec Jean Dupont"></div>
+    <div class="field"><label>Type</label>
+      <select id="event-type"><option value="interview">🎤 Interview</option><option value="record">🎙️ Enregistrement</option><option value="publish">📢 Publication</option></select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Date</label><input type="date" id="event-date"></div>
+      <div class="field"><label>Heure</label><input type="time" id="event-time"></div>
+    </div>
+    <div class="field"><label>Podcast associé</label><select id="event-podcast"><option value="">— Aucun —</option></select></div>
+    <div class="field"><label>Notes</label><textarea id="event-notes" placeholder="Lieu, lien zoom, sujets..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('modal-event').classList.remove('open')">Annuler</button>
+      <button class="btn-create" onclick="createEvent()">Ajouter</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const podcasts={}, contacts=[], events=[];
+let activePodcast=null, selectedEmoji='🎙️', selectedPhoto=null, contactPhoto=null;
+let cardCounters={}, timers={}, calYear, calMonth;
+const PLAT={
+  yt:{icon:'🎬',label:'YouTube',accept:'video/*',fileLabel:'Vidéo YouTube (MP4, 16:9)',format:"MP4, H.264, 16:9, jusqu'à 12h",extra:()=>`<div class="field-row"><div class="field"><label>Catégorie</label><select><option>Science & Technologie</option><option>Éducation</option><option>Divertissement</option></select></div><div class="field"><label>Visibilité</label><select><option>Public</option><option>Non répertorié</option><option>Privé</option></select></div></div><div class="field"><label>Tags</label><input type="text" placeholder="podcast, ia..."></div>`},
+  tt:{icon:'🎵',label:'TikTok',accept:'video/*',fileLabel:'Vidéo TikTok (MP4, 9:16)',format:'MP4, H.264, 9:16 vertical, max 600s — brouillon inbox',extra:()=>`<div class="field"><label>Note sur le son (déjà intégré au montage)</label><input type="text" placeholder="ex: musique déjà mixée dans la vidéo..."></div>`},
+  sp:{icon:'🎙️',label:'Spotify',accept:'audio/*',fileLabel:'Épisode audio (MP3 ou M4A)',format:'MP3 192kbps ou M4A — via flux RSS',extra:()=>`<div class="field-row"><div class="field"><label>Numéro d'épisode</label><input type="number" placeholder="42"></div><div class="field"><label>Saison</label><input type="number" placeholder="1"></div></div><div class="field"><label>Type</label><select><option>Complet</option><option>Bande-annonce</option><option>Bonus</option></select></div>`}
+};
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('nav-'+id).classList.add('active');
+  const btn=document.getElementById('topbar-btn');
+  if(id==='podcasts'){ btn.style.display='none'; }
+  else { btn.style.display=''; const labels={contacts:'+ Ajouter un contact',calendar:'+ Ajouter un événement'}; btn.textContent=labels[id]; }
+}
+function mainAction(){
+  const page=document.querySelector('.page.active').id;
+  if(page==='page-contacts') openContactModal();
+  else if(page==='page-calendar') openEventModal();
+}
+document.getElementById('topbar-btn').style.display='none';
+
+function updateBottomNav(id) {
+  document.querySelectorAll('.bottom-nav-btn').forEach((b,i)=>{
+    if(i<3) b.classList.toggle('active', ['podcasts','contacts','calendar'][i]===id);
+  });
+}
+
+function isMobile() { return window.innerWidth <= 768; }
+
+// ── PODCASTS ──────────────────────────────────────────────────────────────────
+function openPodModal(){
+  document.getElementById('modal-pod').classList.add('open');
+  document.getElementById('pod-name').value='';
+  document.getElementById('pod-photo').value='';
+  document.getElementById('photo-preview-wrap').innerHTML='<div class="photo-placeholder">📷<span>Clique pour ajouter une photo</span></div>';
+  selectedPhoto=null; selectedEmoji='🎙️';
+  document.querySelectorAll('.emoji-pick span').forEach(s=>s.classList.remove('sel'));
+  document.querySelector('.emoji-pick span').classList.add('sel');
+  setTimeout(()=>document.getElementById('pod-name').focus(),100);
+}
+function pickEmoji(el){document.querySelectorAll('.emoji-pick span').forEach(s=>s.classList.remove('sel'));el.classList.add('sel');selectedEmoji=el.textContent;}
+function previewPhoto(input,wrapId,type){
+  if(!input.files[0])return;
+  const r=new FileReader(); r.onload=e=>{
+    if(type==='pod') selectedPhoto=e.target.result;
+    else contactPhoto=e.target.result;
+    document.getElementById(wrapId).innerHTML=`<img src="${e.target.result}" class="photo-preview-img">`;
+  }; r.readAsDataURL(input.files[0]);
+}
+function createPodcast(){
+  const name=document.getElementById('pod-name').value.trim();
+  if(!name){document.getElementById('pod-name').focus();return;}
+  const id='pod-'+Date.now();
+  podcasts[id]={name,emoji:selectedEmoji,photo:selectedPhoto,activePlat:'yt',connected:{yt:false,tt:false,sp:false},cards:{yt:[],tt:[],sp:[]}};
+  cardCounters[id]={yt:0,tt:0,sp:0}; selectedPhoto=null;
+  document.getElementById('modal-pod').classList.remove('open');
+  renderPodTabs(); switchPodcast(id);
+}
+function renderPodTabs(){
+  const ws=document.getElementById('pod-workspace');
+  if(!ws) return;
+  const listEl=document.getElementById('sidebar-pod-list');
+  if(listEl) {
+    const keys=Object.keys(podcasts);
+    listEl.innerHTML=keys.map(id=>{
+      const p=podcasts[id];
+      const av=p.photo?`<img src="${p.photo}" class="pod-list-avatar">`:`<div class="pod-list-emoji">${p.emoji}</div>`;
+      return`<button class="pod-list-item${activePodcast===id?' active':''}" onclick="switchPodcast('${id}')">${av}<span class="pod-list-name">${p.name}</span><span class="pod-list-del" onclick="deletePodcast(event,'${id}')">✕</span></button>`;
+    }).join('');
+  }
+  // Mobile bar
+  renderMobilePodBar();
+}
+
+function renderMobilePodBar() {
+  const bar = document.getElementById('mobile-pod-bar');
+  if (!bar) return;
+  const keys = Object.keys(podcasts);
+  bar.style.display = isMobile() && keys.length ? 'flex' : 'none';
+  bar.innerHTML = keys.map(id => {
+    const p = podcasts[id];
+    const av = p.photo ? `<img src="${p.photo}">` : p.emoji;
+    return `<div class="mobile-pod-chip${activePodcast===id?' active':''}" onclick="switchPodcast('${id}')">${av} ${p.name}</div>`;
+  }).join('') + `<div class="mobile-pod-chip mobile-pod-chip-add" onclick="openPodModal()">＋</div>`;
+}
+function switchPodcast(id){activePodcast=id;renderPodTabs();renderWorkspace(id);}
+function renderWorkspace(id){
+  const pod=podcasts[id], ws=document.getElementById('pod-workspace');
+  const av=pod.photo?`<img src="${pod.photo}" class="pod-avatar-large">`:`<span class="pod-emoji-large">${pod.emoji}</span>`;
+  const ci=Object.entries(PLAT).map(([k,c])=>{const on=pod.connected[k];return`<div class="conn-item"><div class="conn-dot ${on?'on':'off'}"></div><span class="conn-label">${c.label}</span><span class="conn-state ${on?'on':'off'}">${on?'Connecté':'Non connecté'}</span></div>`;}).join('');
+  const keys=Object.keys(podcasts);
+  const podList=keys.map(pid=>{const p=podcasts[pid];const a=p.photo?`<img src="${p.photo}" class="pod-list-avatar">`:`<div class="pod-list-emoji">${p.emoji}</div>`;return`<button class="pod-list-item${activePodcast===pid?' active':''}" onclick="switchPodcast('${pid}')">${a}<span class="pod-list-name">${p.name}</span><span class="pod-list-del" onclick="deletePodcast(event,'${pid}')">✕</span></button>`;}).join('');
+  ws.innerHTML=`<div class="workspace">
+    <div class="sidebar">
+      <div class="sidebar-section-title">Mes podcasts</div>
+      <div id="sidebar-pod-list">${podList}</div>
+      <button class="sidebar-add-btn" onclick="openPodModal()">＋ Nouveau podcast</button>
+      <hr class="sidebar-divider">
+      <div class="pod-profile-card" onclick="showSettings('${id}')">${av}<div class="pod-profile-name">${pod.name}</div><div class="pod-profile-hint">⚙️ Réglages & connexions</div></div>
+      <div class="conn-status"><h4>Connexions</h4>${ci}</div>
+    </div>
+    <div class="main-content">
+      <div class="plat-tabs">${['yt','tt','sp'].map(p=>`<button class="plat-tab pt-${p}${pod.activePlat===p?' active':''}" onclick="switchPlat('${id}','${p}')">${PLAT[p].icon} ${PLAT[p].label}</button>`).join('')}</div>
+      ${['yt','tt','sp'].map(p=>`<div id="plat-${p}-${id}" class="plat-panel${pod.activePlat===p?' active':''}"><div class="panel-header"><div class="panel-title">${PLAT[p].icon} ${PLAT[p].label} — ${pod.name}</div><button class="add-btn" onclick="addCard('${id}','${p}')">+ Ajouter</button></div><div id="cards-${id}-${p}"><div class="empty-plat"><div class="big">${PLAT[p].icon}</div><p>Aucun contenu.<br>Clique sur "+ Ajouter".</p></div></div></div>`).join('')}
+    </div>
+  </div>`;
+}
+function showSettings(id){
+  const pod=podcasts[id],ws=document.getElementById('pod-workspace');
+  const av=pod.photo?`<img src="${pod.photo}" class="settings-avatar" onclick="document.getElementById('chg-${id}').click()">`:`<div class="settings-avatar-emoji" onclick="document.getElementById('chg-${id}').click()">${pod.emoji}</div>`;
+  const cc=Object.entries(PLAT).map(([k,c])=>{const on=pod.connected[k],col={yt:'#fff0f0',tt:'#f0f0f0',sp:'#f0fff4'};return`<div class="conn-card"><div class="conn-card-icon" style="background:${col[k]}">${c.icon}</div><div class="conn-card-info"><h3>${c.label}</h3><p>${k==='yt'?'YouTube Data API v3':k==='tt'?'TikTok — brouillon inbox':'Spotify — flux RSS'}</p></div><span class="status-pill ${on?'on':'off'}">${on?'✓ Connecté':'Non connecté'}</span><button class="btn-connect ${on?'on':'off'}" onclick="toggleConnect('${id}','${k}')">${on?'Déconnecter':'Connecter'}</button></div>`;}).join('');
+  const keys=Object.keys(podcasts);
+  const podList=keys.map(pid=>{const p=podcasts[pid];const a=p.photo?`<img src="${p.photo}" class="pod-list-avatar">`:`<div class="pod-list-emoji">${p.emoji}</div>`;return`<button class="pod-list-item${activePodcast===pid?' active':''}" onclick="switchPodcast('${pid}')">${a}<span class="pod-list-name">${p.name}</span><span class="pod-list-del" onclick="deletePodcast(event,'${pid}')">✕</span></button>`;}).join('');
+  ws.innerHTML=`<div class="workspace"><div class="sidebar"><div class="sidebar-section-title">Mes podcasts</div><div id="sidebar-pod-list">${podList}</div><button class="sidebar-add-btn" onclick="openPodModal()">＋ Nouveau podcast</button></div><div class="main-content"><button class="settings-back" onclick="switchPodcast('${id}')">← Retour</button><div style="font-size:20px;font-weight:700;margin-bottom:4px;">⚙️ Paramètres — ${pod.name}</div><div style="font-size:13px;color:#888;margin-bottom:20px;">Photo de profil et connexions.</div><div class="settings-section-title">Photo de profil</div><div class="settings-photo-block">${av}<input type="file" id="chg-${id}" accept="image/*" style="display:none" onchange="changePhoto('${id}',this)"><div class="settings-avatar-info"><h3>${pod.name}</h3><p>Apparaît dans la barre latérale.</p><button class="btn-change-photo" onclick="document.getElementById('chg-${id}').click()">Changer la photo</button></div></div><div class="settings-section-title" style="margin-top:16px;">Connexions</div>${cc}</div></div>`;
+}
+function toggleConnect(podId,plat){podcasts[podId].connected[plat]=!podcasts[podId].connected[plat];showSettings(podId);}
+function changePhoto(id,input){if(!input.files[0])return;const r=new FileReader();r.onload=e=>{podcasts[id].photo=e.target.result;renderPodTabs();showSettings(id);};r.readAsDataURL(input.files[0]);}
+function switchPlat(podId,plat){podcasts[podId].activePlat=plat;document.querySelectorAll('.plat-tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.plat-panel').forEach(p=>p.classList.remove('active'));document.querySelector(`.pt-${plat}`).classList.add('active');document.getElementById(`plat-${plat}-${podId}`).classList.add('active');}
+function deletePodcast(e,id){e.stopPropagation();if(!confirm('Supprimer ce podcast ?'))return;delete podcasts[id];activePodcast=null;const k=Object.keys(podcasts);if(k.length)switchPodcast(k[0]);else document.getElementById('pod-workspace').innerHTML='<div class="empty-box"><div class="big">🎙️</div><h2>Aucun podcast créé</h2><p>Crée ton premier podcast pour commencer.</p><button onclick="openPodModal()">+ Créer mon premier podcast</button></div>';}
+function addCard(podId,plat){
+  const n=cardCounters[podId][plat]++, cid=`${podId}-${plat}-${n}`, cfg=PLAT[plat];
+  const list=document.getElementById(`cards-${podId}-${plat}`);
+  const empty=list.querySelector('.empty-plat');if(empty)empty.remove();
+  const descLabel=plat==='sp'?"Description de l'épisode":plat==='tt'?'Légende / Caption':'Description';
+  const div=document.createElement('div');div.className='card';div.id='c-'+cid;
+  div.innerHTML=`<div class="card-head" onclick="toggleCard('${cid}')"><div class="card-icon">${cfg.icon}</div><div class="card-meta"><div class="card-title" id="ct-${cid}">Nouveau contenu</div><div class="card-sub" id="cs-${cid}">Non planifié</div><div class="card-cd" id="cd-${cid}"></div></div><span class="badge badge-draft" id="cb-${cid}">Brouillon</span><span class="chevron open" id="chv-${cid}">▾</span></div><div class="card-body open" id="cb2-${cid}"><div class="field"><label>Titre</label><input type="text" placeholder="Titre" oninput="document.getElementById('ct-${cid}').textContent=this.value||'Nouveau contenu'"></div><div class="field"><label>${descLabel}</label><textarea placeholder="Description, légende, hashtags..."></textarea></div><div class="field"><label>Date et heure de publication</label><input type="datetime-local" onchange="schedCard('${cid}',this.value)"></div>${cfg.extra()}<div class="format-tip">📐 ${cfg.format}</div><div class="file-zone" onclick="document.getElementById('fi-${cid}').click()"><div>📁</div><div class="fz-title">${cfg.fileLabel}</div><p>Clique pour choisir</p></div><input type="file" id="fi-${cid}" accept="${cfg.accept}" style="display:none" onchange="fileOk('${cid}',this)"><div class="file-ok" id="fo-${cid}"><span>✅</span><span class="fname" id="fn-${cid}"></span></div><div class="card-actions"><button class="btn-del" onclick="delCard('${cid}','${podId}','${plat}')">🗑 Supprimer</button><button class="btn-save" onclick="saveCard(this)">💾 Enregistrer</button></div></div>`;
+  list.appendChild(div);
+}
+function toggleCard(cid){const b=document.getElementById('cb2-'+cid),c=document.getElementById('chv-'+cid);b.classList.toggle('open');c.classList.toggle('open',b.classList.contains('open'));}
+function schedCard(cid,val){if(!val)return;const dt=new Date(val),fmt=dt.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});document.getElementById('cs-'+cid).textContent='📅 '+fmt;const b=document.getElementById('cb-'+cid);b.className='badge badge-scheduled';b.textContent='Planifié';startCD(cid,dt);}
+function fileOk(cid,inp){if(!inp.files[0])return;document.getElementById('fn-'+cid).textContent=inp.files[0].name;document.getElementById('fo-'+cid).style.display='flex';}
+function delCard(cid,podId,plat){if(timers[cid])clearInterval(timers[cid]);document.getElementById('c-'+cid).remove();const list=document.getElementById(`cards-${podId}-${plat}`);if(!list.querySelector('.card'))list.innerHTML=`<div class="empty-plat"><div class="big">${PLAT[plat].icon}</div><p>Aucun contenu.<br>Clique sur "+ Ajouter".</p></div>`;}
+function saveCard(btn){btn.textContent='✅ Enregistré !';setTimeout(()=>btn.textContent='💾 Enregistrer',1800);}
+function startCD(cid,target){if(timers[cid])clearInterval(timers[cid]);const el=document.getElementById('cd-'+cid);function tick(){if(!el){clearInterval(timers[cid]);return;}const diff=target-new Date();if(diff<=0){el.textContent="🟢 Heure d'export atteinte !";el.style.color='#16a34a';clearInterval(timers[cid]);const b=document.getElementById('cb-'+cid);if(b){b.className='badge badge-ready';b.textContent='Prêt';}return;}const h=Math.floor(diff/3600000),m=Math.floor((diff%3600000)/60000),s=Math.floor((diff%60000)/1000);el.textContent=`⏱ Export dans ${h}h ${m}m ${s}s`;}tick();timers[cid]=setInterval(tick,1000);}
+
+// ── CONTACTS ──────────────────────────────────────────────────────────────────
+function openContactModal(){document.getElementById('modal-contact').classList.add('open');['contact-name','contact-role','contact-email','contact-phone','contact-notes'].forEach(id=>document.getElementById(id).value='');document.getElementById('contact-photo-wrap').innerHTML='<div class="photo-placeholder">📷<span>Clique pour ajouter une photo</span></div>';contactPhoto=null;setTimeout(()=>document.getElementById('contact-name').focus(),100);}
+function createContact(){
+  const name=document.getElementById('contact-name').value.trim();
+  if(!name){document.getElementById('contact-name').focus();return;}
+  contacts.push({id:'c-'+Date.now(),name,role:document.getElementById('contact-role').value.trim(),email:document.getElementById('contact-email').value.trim(),phone:document.getElementById('contact-phone').value.trim(),notes:document.getElementById('contact-notes').value.trim(),photo:contactPhoto});
+  contactPhoto=null;document.getElementById('modal-contact').classList.remove('open');renderContacts();
+}
+function renderContacts(){
+  const grid=document.getElementById('contact-grid');
+  if(!contacts.length){grid.innerHTML='<div class="empty-box" style="grid-column:1/-1"><div class="big">👥</div><h2>Aucun contact</h2><p>Ajoute tes invités, co-animateurs, interviewés...</p><button onclick="openContactModal()">+ Ajouter un contact</button></div>';return;}
+  grid.innerHTML=contacts.map((c,i)=>{
+    const ini=c.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const av=c.photo?`<img src="${c.photo}" class="contact-avatar">`:`<div class="contact-initials">${ini}</div>`;
+    return`<div class="contact-card">${av}<div style="flex:1;min-width:0"><div class="contact-name">${c.name}</div>${c.role?`<div class="contact-role">${c.role}</div>`:''} ${c.email?`<div style="font-size:12px;color:#3b82f6;margin-top:2px;">✉️ ${c.email}</div>`:''} ${c.phone?`<div style="font-size:12px;color:#888;margin-top:2px;">📞 ${c.phone}</div>`:''} ${c.notes?`<div style="font-size:12px;color:#aaa;margin-top:4px;">${c.notes}</div>`:''}<button class="btn-sm red" onclick="deleteContact(${i})">🗑 Supprimer</button></div></div>`;
+  }).join('');
+}
+function deleteContact(i){if(!confirm('Supprimer ?'))return;contacts.splice(i,1);renderContacts();}
+
+// ── CALENDRIER ────────────────────────────────────────────────────────────────
+function initCal(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();renderCal();}
+function calNav(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCal();}
+function renderCal(){
+  const months=['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-title').textContent=`${months[calMonth]} ${calYear}`;
+  const grid=document.getElementById('cal-days');grid.innerHTML='';
+  const first=new Date(calYear,calMonth,1),startDay=(first.getDay()+6)%7;
+  const dim=new Date(calYear,calMonth+1,0).getDate(),prev=new Date(calYear,calMonth,0).getDate();
+  const today=new Date();
+  for(let i=startDay-1;i>=0;i--){const d=document.createElement('div');d.className='cal-day other-month';d.innerHTML=`<div class="day-num">${prev-i}</div>`;grid.appendChild(d);}
+  for(let d=1;d<=dim;d++){
+    const cell=document.createElement('div');
+    const isT=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const hasE=events.some(e=>e.date===ds);
+    cell.className='cal-day'+(isT?' today':'')+(hasE?' has-event':'');
+    cell.innerHTML=`<div class="day-num">${d}</div>${hasE?'<div class="day-dot"></div>':''}`;
+    grid.appendChild(cell);
+  }
+  renderEventsList();
+}
+function openEventModal(){
+  document.getElementById('modal-event').classList.add('open');
+  ['event-title','event-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('event-date').value='';document.getElementById('event-time').value='';
+  const sel=document.getElementById('event-podcast');sel.innerHTML='<option value="">— Aucun —</option>'+Object.values(podcasts).map(p=>`<option>${p.name}</option>`).join('');
+  setTimeout(()=>document.getElementById('event-title').focus(),100);
+}
+function createEvent(){
+  const title=document.getElementById('event-title').value.trim();
+  if(!title){document.getElementById('event-title').focus();return;}
+  events.push({id:'ev-'+Date.now(),title,type:document.getElementById('event-type').value,date:document.getElementById('event-date').value,time:document.getElementById('event-time').value,podcast:document.getElementById('event-podcast').value,notes:document.getElementById('event-notes').value.trim()});
+  document.getElementById('modal-event').classList.remove('open');renderCal();
+}
+function renderEventsList(){
+  const el=document.getElementById('events-list-content');
+  if(!events.length){el.innerHTML='<div class="no-events">Aucun événement planifié.</div>';return;}
+  const sorted=[...events].sort((a,b)=>a.date.localeCompare(b.date));
+  const tl={interview:'Interview',record:'Enregistrement',publish:'Publication'};
+  const mo=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+  el.innerHTML=sorted.map((ev,i)=>{
+    const parts=ev.date?ev.date.split('-'):['','',''];
+    return`<div class="event-item"><div class="event-date-box"><div class="eday">${parts[2]||'?'}</div><div class="emon">${mo[parseInt(parts[1])-1]||'?'}</div></div><div class="event-info"><div class="event-title">${ev.title}</div><div class="event-meta">${ev.time||''}${ev.podcast?' · '+ev.podcast:''}</div><span class="event-type ${ev.type}">${tl[ev.type]}</span>${ev.notes?`<div style="font-size:11px;color:#aaa;margin-top:4px;">${ev.notes}</div>`:''}</div><span class="event-del" onclick="deleteEvent(${i})">✕</span></div>`;
+  }).join('');
+}
+function deleteEvent(i){events.splice(i,1);renderCal();}
+
+// ══ AUTH LOGIC ════════════════════════════════════════════════════════════════
+// Stockage local simulé (en prod : remplacer par appels API)
+const ADMIN_EMAIL = 'admin@pimup.com';
+const ADMIN_PASS = 'admin123';
+let pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
+let approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"admin@pimup.com","pass":"admin123","name":"Admin","role":"admin"}]');
+
+function showForm(name) {
+  ['login','register','forgot'].forEach(f => document.getElementById('form-'+f).style.display = f===name ? '' : 'none');
+  ['login-msg','register-msg','forgot-msg'].forEach(id => { const el=document.getElementById(id); el.style.display='none'; el.textContent=''; });
+}
+
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text; el.className = 'auth-msg '+type; el.style.display = 'block';
+}
+
+function showAuthScreen() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('pending-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'none';
+  showForm('login');
+}
+
+function doLogin() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) { showMsg('login-msg','Remplis tous les champs.','error'); return; }
+  const user = approvedUsers.find(u => u.email === email && u.pass === pass);
+  if (!user) {
+    const isPending = pendingUsers.find(u => u.email === email);
+    if (isPending) showMsg('login-msg','Ton compte est en attente de validation.','info');
+    else showMsg('login-msg','Email ou mot de passe incorrect.','error');
+    return;
+  }
+  // Connexion OK
+  const remember = document.getElementById('remember-me').checked;
+  if (remember) localStorage.setItem('wavdrop_session', JSON.stringify({email: user.email, pass: user.pass}));
+  else sessionStorage.setItem('wavdrop_session', JSON.stringify({email: user.email, pass: user.pass}));
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  // Si admin, montrer bannière notifications
+  if (user.role === 'admin') renderAdminBanner();
+  initCal();
+  document.getElementById('pod-name').addEventListener('keydown',e=>{if(e.key==='Enter')createPodcast();});
+  document.getElementById('contact-name').addEventListener('keydown',e=>{if(e.key==='Enter')createContact();});
+  document.getElementById('topbar-btn').style.display='none';
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass = document.getElementById('reg-pass').value;
+  if (!name || !email || !pass) { showMsg('register-msg','Remplis tous les champs.','error'); return; }
+  if (pass.length < 6) { showMsg('register-msg','Mot de passe trop court (min. 6 caractères).','error'); return; }
+  if (approvedUsers.find(u=>u.email===email) || pendingUsers.find(u=>u.email===email)) { showMsg('register-msg','Cet email est déjà utilisé.','error'); return; }
+  const newUser = { name, email, pass, role: 'user', createdAt: new Date().toLocaleString('fr-FR') };
+  pendingUsers.push(newUser);
+  localStorage.setItem('pimup_pending', JSON.stringify(pendingUsers));
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('pending-screen').style.display = 'flex';
+  // Simuler notif admin
+  renderAdminBannerGlobal();
+}
+
+function doForgot() {
+  const email = document.getElementById('forgot-email').value.trim().toLowerCase();
+  if (!email) { showMsg('forgot-msg','Entre ton adresse email.','error'); return; }
+  const exists = approvedUsers.find(u=>u.email===email) || pendingUsers.find(u=>u.email===email);
+  if (!exists) { showMsg('forgot-msg','Aucun compte trouvé avec cet email.','error'); return; }
+  showMsg('forgot-msg','✅ Un lien de récupération a été envoyé à '+email+' (simulation).','success');
+}
+
+function renderAdminBanner() {
+  pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
+  const banner = document.getElementById('admin-banner');
+  if (!pendingUsers.length) { banner.classList.remove('show'); return; }
+  banner.classList.add('show');
+  banner.innerHTML = pendingUsers.map((u,i) => `
+    <div class="admin-notif"><div class="admin-notif-dot"></div>
+      <span>🔔 Nouvelle demande : <strong>${u.name}</strong> (${u.email}) — ${u.createdAt}</span>
+    </div>
+    <div class="admin-actions">
+      <button class="admin-btn approve" onclick="approveUser(${i})">✓ Approuver</button>
+      <button class="admin-btn reject" onclick="rejectUser(${i})">✕ Refuser</button>
+    </div>`).join('<hr style="border-color:rgba(255,255,255,0.2);margin:6px 0">');
+}
+
+function renderAdminBannerGlobal() {
+  // Affiche même si pas connecté (pour démo)
+  const banner = document.getElementById('admin-banner');
+  pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
+  if (!pendingUsers.length) return;
+  banner.classList.add('show');
+  banner.innerHTML = pendingUsers.map((u,i) => `
+    <div class="admin-notif"><div class="admin-notif-dot"></div>
+      <span>🔔 Nouvelle demande : <strong>${u.name}</strong> (${u.email})</span>
+    </div>
+    <div class="admin-actions">
+      <button class="admin-btn approve" onclick="approveUser(${i})">✓ Approuver</button>
+      <button class="admin-btn reject" onclick="rejectUser(${i})">✕ Refuser</button>
+    </div>`).join('');
+}
+
+function approveUser(i) {
+  pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
+  const user = pendingUsers.splice(i, 1)[0];
+  approvedUsers.push(user);
+  localStorage.setItem('pimup_pending', JSON.stringify(pendingUsers));
+  localStorage.setItem('pimup_approved', JSON.stringify(approvedUsers));
+  renderAdminBanner(); renderAdminBannerGlobal();
+}
+
+function rejectUser(i) {
+  pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
+  pendingUsers.splice(i, 1);
+  localStorage.setItem('pimup_pending', JSON.stringify(pendingUsers));
+  renderAdminBanner(); renderAdminBannerGlobal();
+}
+
+// Vérifier notifications en attente au chargement
+renderAdminBannerGlobal();
+
+// Enregistrement PWA
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+
+// Auto-login si session sauvegardée
+(function() {
+  const saved = localStorage.getItem('wavdrop_session') || sessionStorage.getItem('wavdrop_session');
+  if (saved) {
+    try {
+      const {email, pass} = JSON.parse(saved);
+      approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"admin@pimup.com","pass":"admin123","name":"Admin","role":"admin"}]');
+      const user = approvedUsers.find(u => u.email === email && u.pass === pass);
+      if (user) {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('app-screen').style.display = 'block';
+        if (user.role === 'admin') renderAdminBanner();
+        initCal();
+        document.getElementById('pod-name').addEventListener('keydown',e=>{if(e.key==='Enter')createPodcast();});
+        document.getElementById('contact-name').addEventListener('keydown',e=>{if(e.key==='Enter')createContact();});
+        document.getElementById('topbar-btn').style.display='none';
+      }
+    } catch(e) {}
+  }
+})();
+</script>
+</div><!-- /app-screen -->
+</body>
+</html>
