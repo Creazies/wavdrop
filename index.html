@@ -773,9 +773,9 @@ function deleteEvent(i){events.splice(i,1);renderCal();}
 // ══ AUTH LOGIC ════════════════════════════════════════════════════════════════
 // Stockage local simulé (en prod : remplacer par appels API)
 const ADMIN_EMAIL = 'colasadrien01@gmail.com';
-const ADMIN_PASS = 'AdriCol2001??';
+const ADMIN_PASS = 'AdrienColas2001';
 let pendingUsers = JSON.parse(localStorage.getItem('pimup_pending') || '[]');
-let approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"colasadrien01@gmail.com","pass":"AdriCol2001??","name":"Admin","role":"admin"}]');
+let approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"colasadrien01@gmail.com","pass":"AdrienColas2001","name":"Admin","role":"admin"}]');
 
 function showForm(name) {
   ['login','register','forgot'].forEach(f => document.getElementById('form-'+f).style.display = f===name ? '' : 'none');
@@ -904,7 +904,7 @@ if ('serviceWorker' in navigator) {
   if (saved) {
     try {
       const {email, pass} = JSON.parse(saved);
-      approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"colasadrien01@gmail.com","pass":"AdriCol2001??","name":"Admin","role":"admin"}]');
+      approvedUsers = JSON.parse(localStorage.getItem('pimup_approved') || '[{"email":"colasadrien01@gmail.com","pass":"AdrienColas2001","name":"Admin","role":"admin"}]');
       const user = approvedUsers.find(u => u.email === email && u.pass === pass);
       if (user) {
         document.getElementById('auth-screen').style.display = 'none';
